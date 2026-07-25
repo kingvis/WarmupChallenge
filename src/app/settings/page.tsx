@@ -16,43 +16,71 @@ export default function SettingsPage() {
     }
   }, [isLoaded, user, router]);
 
-  // Preference states
+  // Profile preferences states
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState("recovery");
-  const [supportStyle, setSupportStyle] = useState("gentle");
-  const [calmingTone, setCalmingTone] = useState("soothing");
+  const [role, setRole] = useState("user");
+  const [language, setLanguage] = useState("english");
+  const [calmingMode, setCalmingMode] = useState("breathing");
+  
   const [emergencyContactName, setEmergencyContactName] = useState("");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+  
+  // Consent and Storage policies
+  const [cameraEnabled, setCameraEnabled] = useState(true);
+  const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
+  const [transcriptsStored, setTranscriptsStored] = useState(true);
+  const [snapshotsStored, setSnapshotsStored] = useState(false);
+  const [alertSharing, setAlertSharing] = useState(true);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Sync preference state from Clerk unsafeMetadata
+  // Sync state from Clerk user metadata
   useEffect(() => {
     if (isLoaded && user) {
       const metadata = (user.unsafeMetadata || {}) as {
         fullName?: string;
-        role?: "recovery" | "caregiver" | "both";
-        supportStyle?: "gentle" | "direct" | "structured";
-        calmingTone?: "soothing" | "mindful" | "motivational";
+        role?: "user" | "doctor" | "supervisor" | "caregiver";
+        language?: "english" | "hinglish" | "hindi";
+        calmingMode?: "breathing" | "sound" | "text";
         emergencyContactName?: string;
         emergencyContactPhone?: string;
+        storagePolicy?: {
+          historyEnabled: boolean;
+          transcriptsStored: boolean;
+          snapshotsStored: boolean;
+        };
+        consents?: {
+          cameraEnabled: boolean;
+          microphoneEnabled: boolean;
+          alertSharing: boolean;
+        };
       };
 
       setFullName(metadata.fullName || user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim());
-      setRole(metadata.role || "recovery");
-      setSupportStyle(metadata.supportStyle || "gentle");
-      setCalmingTone(metadata.calmingTone || "soothing");
+      setRole(metadata.role || "user");
+      setLanguage(metadata.language || "english");
+      setCalmingMode(metadata.calmingMode || "breathing");
       setEmergencyContactName(metadata.emergencyContactName || "");
       setEmergencyContactPhone(metadata.emergencyContactPhone || "");
+      
+      if (metadata.consents) {
+        setCameraEnabled(metadata.consents.cameraEnabled ?? true);
+        setMicrophoneEnabled(metadata.consents.microphoneEnabled ?? true);
+        setAlertSharing(metadata.consents.alertSharing ?? true);
+      }
+      if (metadata.storagePolicy) {
+        setTranscriptsStored(metadata.storagePolicy.transcriptsStored ?? true);
+        setSnapshotsStored(metadata.storagePolicy.snapshotsStored ?? false);
+      }
     }
   }, [isLoaded, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
-      setError("Please enter your name.");
+      setError("Please enter your display name.");
       return;
     }
 
@@ -67,10 +95,20 @@ export default function SettingsPage() {
             ...user.unsafeMetadata,
             fullName: fullName.trim(),
             role,
-            supportStyle,
-            calmingTone,
+            language,
+            calmingMode,
             emergencyContactName: emergencyContactName.trim(),
-            emergencyContactPhone: emergencyContactPhone.trim()
+            emergencyContactPhone: emergencyContactPhone.trim(),
+            storagePolicy: {
+              historyEnabled: true,
+              transcriptsStored,
+              snapshotsStored
+            },
+            consents: {
+              cameraEnabled,
+              microphoneEnabled,
+              alertSharing
+            }
           }
         });
         setSuccess(true);
@@ -97,23 +135,23 @@ export default function SettingsPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col justify-start bg-slate-50 pb-12">
-      {/* Header bar */}
+      {/* Header */}
       <header className="w-full max-w-5xl mx-auto px-6 py-4 flex items-center justify-between border-b border-slate-200 bg-white">
         <div className="flex items-center gap-2">
-          <span className="text-xl" role="img" aria-label="Logo Home">🏡</span>
-          <span className="font-heading font-semibold text-lg text-blue-900">Settings Profile</span>
+          <span className="text-xl" role="img" aria-label="Logo Home">🛡️</span>
+          <span className="font-heading font-semibold text-lg text-blue-900">Sentinel Settings</span>
         </div>
-        <Link href="/dashboard" className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-sm">
+        <Link href={`/dashboard/${role === 'recovery' || role === 'both' ? 'user' : role}`} className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-sm">
           🔙 Back to Dashboard
         </Link>
       </header>
 
       {/* Main panel */}
-      <main className="w-full max-w-lg mx-auto px-6 py-6 flex flex-col gap-6">
+      <main className="w-full max-w-xl mx-auto px-6 py-6 flex flex-col gap-6">
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-6">
           <div>
-            <h2 className="font-heading font-bold text-lg text-slate-900">Configure Profile Preferences</h2>
-            <p className="text-xs text-slate-500 mt-1">Adjust support styles, roles, and emergency information below.</p>
+            <h2 className="font-heading font-bold text-lg text-slate-900">HIPAA & Storage Configurations</h2>
+            <p className="text-xs text-slate-500 mt-1">Adjust data consent scopes, active diagnostic triggers, and logs policies.</p>
           </div>
 
           {error && (
@@ -124,18 +162,18 @@ export default function SettingsPage() {
 
           {success && (
             <div className="p-3.5 bg-green-50 border border-green-200 text-green-700 rounded-xl text-xs" role="alert">
-              ✓ Preferences updated and saved to account.
+              ✓ Sentinel preferences updated and synchronized.
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {/* Full Name */}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-xs">
+            {/* Display Name */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="settingsName" className="text-xs font-semibold text-slate-700">Display Name</label>
+              <label htmlFor="setFullName" className="font-semibold text-slate-700">Display Name</label>
               <input 
-                id="settingsName"
+                id="setFullName"
                 type="text" 
-                className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-slate-900 text-xs focus-ring"
+                className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-slate-900 text-xs"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
@@ -144,74 +182,132 @@ export default function SettingsPage() {
 
             {/* Role */}
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="settingsRole" className="text-xs font-semibold text-slate-700">Primary Role</label>
+              <label htmlFor="setRole" className="font-semibold text-slate-700">Sentinel Role</label>
               <select
-                id="settingsRole"
-                className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-slate-900 text-xs focus-ring"
+                id="setRole"
+                className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
               >
-                <option value="recovery">In Recovery</option>
-                <option value="caregiver">Caregiver</option>
-                <option value="both">Both Roles</option>
+                <option value="user">User / Patient</option>
+                <option value="doctor">Clinician / Doctor</option>
+                <option value="supervisor">Operational Supervisor</option>
+                <option value="caregiver">Caregiver / Support Network</option>
               </select>
             </div>
 
-            {/* Support Style */}
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="settingsStyle" className="text-xs font-semibold text-slate-700">Preferred Support Style</label>
-              <select
-                id="settingsStyle"
-                className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-slate-900 text-xs focus-ring"
-                value={supportStyle}
-                onChange={(e) => setSupportStyle(e.target.value)}
-              >
-                <option value="gentle">Gentle</option>
-                <option value="direct">Direct</option>
-                <option value="structured">Structured</option>
-              </select>
-            </div>
+            {/* Check-in preferences */}
+            {role === "user" && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="setLanguage" className="font-semibold text-slate-700">Interaction Language</label>
+                    <select
+                      id="setLanguage"
+                      className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                    >
+                      <option value="english">English</option>
+                      <option value="hinglish">Hinglish</option>
+                      <option value="hindi">Hindi</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="setMode" className="font-semibold text-slate-700">Calming Mode</label>
+                    <select
+                      id="setMode"
+                      className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                      value={calmingMode}
+                      onChange={(e) => setCalmingMode(e.target.value)}
+                    >
+                      <option value="breathing">Sama Vritti Breathing</option>
+                      <option value="sound">Binaural Waves</option>
+                      <option value="text">Safe Affirmations</option>
+                    </select>
+                  </div>
+                </div>
 
-            {/* Calming Tone */}
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="settingsTone" className="text-xs font-semibold text-slate-700">Preferred Calming Tone</label>
-              <select
-                id="settingsTone"
-                className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-slate-900 text-xs focus-ring"
-                value={calmingTone}
-                onChange={(e) => setCalmingTone(e.target.value)}
-              >
-                <option value="soothing">Soothing</option>
-                <option value="mindful">Mindful</option>
-                <option value="motivational">Motivational</option>
-              </select>
-            </div>
+                {/* Emergency Contact */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="setEmergName" className="font-semibold text-slate-700">Caregiver Name</label>
+                    <input 
+                      id="setEmergName"
+                      type="text" 
+                      className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                      value={emergencyContactName}
+                      onChange={(e) => setEmergencyContactName(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="setEmergPhone" className="font-semibold text-slate-700">Caregiver Phone</label>
+                    <input 
+                      id="setEmergPhone"
+                      type="tel" 
+                      className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none"
+                      value={emergencyContactPhone}
+                      onChange={(e) => setEmergencyContactPhone(e.target.value)}
+                    />
+                  </div>
+                </div>
 
-            {/* Emergency Contact Name */}
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="settingsContact" className="text-xs font-semibold text-slate-700">Emergency Contact Name</label>
-              <input 
-                id="settingsContact"
-                type="text" 
-                className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-slate-900 text-xs focus-ring"
-                placeholder="e.g. Mentor Aarav"
-                value={emergencyContactName}
-                onChange={(e) => setEmergencyContactName(e.target.value)}
-              />
-            </div>
+                {/* Consent switches */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-3 mt-2">
+                  <span className="font-bold text-slate-900 mb-1">📋 HIPAA & Logs Storage Policies</span>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-600 font-medium">Camera expression estimation</span>
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 text-blue-600 accent-blue-600"
+                      checked={cameraEnabled} 
+                      onChange={(e) => setCameraEnabled(e.target.checked)} 
+                    />
+                  </div>
 
-            {/* Emergency Contact Phone */}
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="settingsPhone" className="text-xs font-semibold text-slate-700">Emergency Contact Phone</label>
-              <input 
-                id="settingsPhone"
-                type="tel" 
-                className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-slate-900 text-xs focus-ring"
-                placeholder="e.g. +91 98765 43210"
-                value={emergencyContactPhone}
-                onChange={(e) => setEmergencyContactPhone(e.target.value)}
-              />
-            </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-600 font-medium">Microphone vocal sentiment check</span>
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 text-blue-600 accent-blue-600"
+                      checked={microphoneEnabled} 
+                      onChange={(e) => setMicrophoneEnabled(e.target.checked)} 
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-600 font-medium">Store session transcript in database</span>
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 text-blue-600 accent-blue-600"
+                      checked={transcriptsStored} 
+                      onChange={(e) => setTranscriptsStored(e.target.checked)} 
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-600 font-medium">Store camera snapshot in database</span>
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 text-blue-600 accent-blue-600"
+                      checked={snapshotsStored} 
+                      onChange={(e) => setSnapshotsStored(e.target.checked)} 
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-600 font-medium">Alert supervisor/doctor automatically</span>
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 text-blue-600 accent-blue-600"
+                      checked={alertSharing} 
+                      onChange={(e) => setAlertSharing(e.target.checked)} 
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             <button
               type="submit"
@@ -223,10 +319,10 @@ export default function SettingsPage() {
           </form>
         </div>
 
-        {/* Account Details & Logs */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
-          <h3 className="font-heading font-bold text-sm text-slate-900">Clerk Session Management</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">You are logged in as <strong>{user.primaryEmailAddress?.emailAddress}</strong>.</p>
+        {/* Account Details */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-xs">
+          <h3 className="font-heading font-bold text-sm text-slate-900">Session Account Management</h3>
+          <p className="text-slate-500 leading-relaxed">Logged in as <strong>{user.primaryEmailAddress?.emailAddress}</strong>.</p>
           <SignOutButton>
             <button type="button" className="w-full py-3 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 text-xs font-bold rounded-xl transition">
               🚪 Log Out from Account

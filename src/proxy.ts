@@ -21,5 +21,6 @@ export const config = {
     '/((?!_next|[^?]*\\.[^?]*$).*)',
     // Always run for API routes
     '/(api|trpc)(.*)',
+    '/__clerk/:path*',
   ],
 };
