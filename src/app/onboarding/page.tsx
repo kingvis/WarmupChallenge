@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { FamilyGallery, FamilyMemberPhoto } from "@/components/family-gallery";
 import { Shield, Heart, User, Sparkles, AlertCircle } from "lucide-react";
+import { sanitizeRole } from "@/lib/role-utils";
 
 export default function OnboardingPage() {
   const { user, isLoaded } = useUser();
@@ -45,7 +46,7 @@ export default function OnboardingPage() {
         familyMembers?: FamilyMemberPhoto[];
       };
       if (metadata.onboardingCompleted) {
-        const userRole = (user.unsafeMetadata as any).role || "user";
+        const userRole = sanitizeRole((user.unsafeMetadata as any).role);
         router.push(`/dashboard/${userRole}`);
       } else {
         if (user.fullName || user.firstName) {
@@ -115,8 +116,8 @@ export default function OnboardingPage() {
           },
         });
         
-        // Push to role-specific route
-        router.push(`/dashboard/${role}`);
+        // Push to role-specific route (sanitized to prevent 404s)
+        router.push(`/dashboard/${sanitizeRole(role)}`);
       } else {
         throw new Error("No user session found.");
       }

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import Link from "next/link";
+import { sanitizeRole } from "@/lib/role-utils";
 
 export default function SettingsPage() {
   const { user, isLoaded } = useUser();
@@ -141,7 +142,7 @@ export default function SettingsPage() {
           <span className="text-xl" role="img" aria-label="Logo Home">🛡️</span>
           <span className="font-heading font-semibold text-lg text-blue-900">Sentinel Settings</span>
         </div>
-        <Link href={`/dashboard/${role === 'recovery' || role === 'both' ? 'user' : role}`} className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-sm">
+        <Link href={`/dashboard/${sanitizeRole(role)}`} className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition shadow-sm">
           🔙 Back to Dashboard
         </Link>
       </header>

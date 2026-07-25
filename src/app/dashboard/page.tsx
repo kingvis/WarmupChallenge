@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
+import { sanitizeRole } from "@/lib/role-utils";
 
 export default function DashboardEntry() {
   const { user, isLoaded } = useUser();
@@ -18,11 +19,7 @@ export default function DashboardEntry() {
         if (!metadata.onboardingCompleted) {
           router.push("/onboarding");
         } else {
-          // Enforce role-based redirect with legacy mapping
-          let role = metadata.role || "user";
-          if (role === "recovery" || role === "both") {
-            role = "user";
-          }
+          const role = sanitizeRole(metadata.role);
           router.push(`/dashboard/${role}`);
         }
       }
