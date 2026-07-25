@@ -30,10 +30,15 @@ const config: Config = {
     "^next/server$": "<rootDir>/src/__tests__/__mocks__/nextServer.ts",
   },
 
+  modulePathIgnorePatterns: [
+    "<rootDir>/WarmupChallenge/",
+    "<rootDir>/.kilo/",
+  ],
+
   // Test discovery
   testMatch: [
-    "<rootDir>/src/__tests__/api/**/*.test.ts",
-    "<rootDir>/src/__tests__/utils/**/*.test.ts",
+    "<rootDir>/src/__tests__/**/*.test.ts",
+    "<rootDir>/src/__tests__/**/*.test.tsx",
   ],
 
   // Coverage configuration

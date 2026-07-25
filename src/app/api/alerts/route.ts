@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     const { userId, userName, severity, triggers, status, clinicianNotes } = await req.json();
 
     const newAlert = {
-      id: `alert_${Date.now()}`,
+      id: `alert_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       userId: userId || "anonymous",
       userName: userName || "Patient User",
       severity: severity || "moderate",
