@@ -130,7 +130,7 @@ const MOCK_CAREGIVER_GUIDANCE = {
     whatToSay: "Main dekh raha hoon ki tum mehnat kar rahe ho. Agar tum share karna chaho toh main sunne ke liye taiyaar hoon. (I see you are working hard. If you want to share, I am ready to listen.)",
     whatToAvoid: "Avoid giving unsolicited advice or downplaying their stress by saying 'Yeh toh bas tumhare dimaag mein hai'.",
     boundaryTip: "Active listening does not mean agreeing to unreasonable demands. Keep conversations respectful and set limits on shouting.",
-    whenToEscalate: "If they withdraw from family contact completely and refuse accountability checks, consult a recovery advisor or helpline."
+    whenToEscalate: "If they refuse to talk and start showing signs of active relapse risk or self-harm ideation, reach out to their sponsor or a recovery specialist."
   },
   prevention: {
     whatToSay: "Chalo hum donon milkar ek plan likhte hain taaki jab stress badhe, hume pata ho kya karna hai. (Let's write a plan together so when stress rises, we know what to do.)",
@@ -261,13 +261,17 @@ Ensure the JSON is valid and return ONLY the JSON block. Do not wrap in markdown
 });
 
 // Serve frontend in production
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, '../dist')));
 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  res.sendFile(path.join(__dirname, '../dist', 'index.html'));
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+export default app;
+
+// Start Server if running locally
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}

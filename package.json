@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev:frontend": "vite",
-    "dev:backend": "node server.js",
+    "dev:backend": "node api/server.js",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "start": "node server.js",
+    "start": "node api/server.js",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"
