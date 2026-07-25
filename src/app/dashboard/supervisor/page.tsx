@@ -24,10 +24,8 @@ export default function SupervisorDashboard() {
 
   // Data states
   const [alerts, setAlerts] = useState<any[]>([]);
-  const [whatsappLogs, setWhatsappLogs] = useState<any[]>([
-    { id: "log_1", to: "+91 98765 99999", message: "[CRITICAL ALERT] Patient Aditya Roy has triggered an emergency SOS. Please check on them immediately.", status: "sent", timestamp: "5 mins ago" },
-    { id: "log_2", to: "+91 98765 43210", message: "[SENSITIVE HEALTH NOTICE] Nikhil Sharma is showing high stress markers (Mood 3/10). Please contact them.", status: "sent", timestamp: "30 mins ago" }
-  ]);
+  // Notification audit log — populated only by real dispatch events, never pre-seeded.
+  const [whatsappLogs, setWhatsappLogs] = useState<any[]>([]);
 
   // SLA Counter
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes default countdown
@@ -164,7 +162,16 @@ export default function SupervisorDashboard() {
                     <button 
                       type="button" 
                       className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition focus-ring"
-                      onClick={() => alert(`Twilio backup SMS dispatch successfully sent to ${al.userName}'s emergency care network.`)}
+                      onClick={() => {
+                        const newLog = {
+                          id: `log_${Date.now()}`,
+                          to: "Caregiver (configure in patient Settings)",
+                          message: `[SENTINEL ESCALATION] Patient ${al.userName} requires immediate attention. Please check on them.`,
+                          status: "simulated",
+                          timestamp: new Date().toLocaleTimeString()
+                        };
+                        setWhatsappLogs((prev: any[]) => [newLog, ...prev]);
+                      }}
                     >
                       📲 Dispatch Caregiver Alert
                     </button>
@@ -190,16 +197,22 @@ export default function SupervisorDashboard() {
             </div>
 
             <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-1">
-              {whatsappLogs.map((log) => (
-                <div key={log.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                  <div className="flex justify-between items-center font-bold text-slate-900 text-[10px] mb-1">
-                    <span>Recip: {log.to}</span>
-                    <span className="text-green-600 uppercase text-[8px] bg-green-50 px-1.5 py-0.5 border border-green-200 rounded-full">{log.status}</span>
-                  </div>
-                  <p className="text-[10px] text-slate-600 italic">"{log.message}"</p>
-                  <span className="text-[9px] text-slate-400 block text-right mt-1.5">{log.timestamp}</span>
+              {whatsappLogs.length === 0 ? (
+                <div className="py-6 text-center text-[10px] text-slate-400">
+                  No dispatches yet. Use "Dispatch Caregiver Alert" on an active escalation to generate a log entry.
                 </div>
-              ))}
+              ) : (
+                whatsappLogs.map((log: any) => (
+                  <div key={log.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <div className="flex justify-between items-center font-bold text-slate-900 text-[10px] mb-1">
+                      <span>Recip: {log.to}</span>
+                      <span className="text-amber-600 uppercase text-[8px] bg-amber-50 px-1.5 py-0.5 border border-amber-200 rounded-full">{log.status}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-600 italic">"{log.message}"</p>
+                    <span className="text-[9px] text-slate-400 block text-right mt-1.5">{log.timestamp}</span>
+                  </div>
+                ))
+              )}
             </div>
             
             <div className="p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl leading-relaxed text-[10px] text-indigo-950 flex flex-col gap-1">

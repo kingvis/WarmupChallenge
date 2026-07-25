@@ -76,35 +76,11 @@ Do not use technical, psychiatric, or alarming terminology. Output valid JSON on
       }
     }
 
-    // Fallback Mock System
-    if (targetRole === "doctor") {
-      return NextResponse.json({
-        observedIndicators: `Simulated logs: Patient ${selectedUserName} reported a mood score of ${moodScore || 5}/10 and stress level of ${stressLevel || 5}/10. Facial analysis registered distress indicators with confidence: ${(facialScore || 0.35).toFixed(2)}. Verbal transcript contained stress cues: "${transcript || 'User remained mostly quiet during check-in'}"`,
-        confidenceNotes: "Moderate data confidence. Audio signals match manual check-in parameters.",
-        riskRationale: `Risk computed based on active check-in mood (${moodScore}/10) and stress level (${stressLevel}/10) exceeding baseline parameters.`,
-        recommendedFollowUp: [
-          `Can you describe the physical sensations you feel when stress rises to ${stressLevel}/10?`,
-          "Who in your immediate circle is available to sit with you right now?"
-        ],
-        suggestedIntervention: "Invite the patient to sit in a quiet area and initiate a 5-minute Pranayama breathing guide.",
-        source: "fallback"
-      });
-    } else if (targetRole === "supervisor") {
-      return NextResponse.json({
-        escalationReason: `Automatic alert triggered for patient ${selectedUserName} due to high stress level (${stressLevel}/10) and distress transcript patterns.`,
-        slaUrgency: "HIGH URGENCY - Requires clinician response acknowledgement within 15 minutes.",
-        recommendedAction: "Verify if the assigned doctor has reviewed the patient session log. Ready Twilio WhatsApp caregiver dispatch backup.",
-        auditNote: "Alert log successfully dispatched to supervisor audit database.",
-        source: "fallback"
-      });
-    } else {
-      return NextResponse.json({
-        whatToSay: `Namaste. I can see you are carrying a lot of weight today. Let's take a slow, deep breath together. I am right here with you.`,
-        whatToAvoid: "Avoid asking demanding questions like 'Why are you feeling like this again?' or bringing up past relapse events.",
-        boundaryTip: "Remember that you cannot force their recovery. Step away, drink a glass of water, and give yourself a 5-minute breather.",
-        source: "fallback"
-      });
-    }
+    // No API key configured — return a clear, actionable error. Never fabricate clinical summaries.
+    return NextResponse.json({
+      _error: "GEMINI_API_KEY is not configured. Add it to .env.local to enable AI-generated summaries. No summary has been generated.",
+      source: "unconfigured"
+    }, { status: 503 });
   } catch (err: any) {
     console.error("Endpoint crash:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

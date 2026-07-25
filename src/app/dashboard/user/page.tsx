@@ -43,11 +43,15 @@ export default function UserDashboard() {
     };
   };
 
-  const displayName = metadata.fullName || user?.firstName || "Friend";
-  const caregiverName = metadata.emergencyContactName || "Aarav (Mentor)";
-  const caregiverPhone = metadata.emergencyContactPhone || "+91 98765 43210";
+  const displayName = metadata.fullName || user?.firstName || "User";
+  const caregiverName = metadata.emergencyContactName || null;
+  const caregiverPhone = metadata.emergencyContactPhone || null;
+  const assignedDoctor = (metadata as any).assignedDoctorId || null;
   const cameraAllowed = metadata.consents?.cameraEnabled ?? true;
   const micAllowed = metadata.consents?.microphoneEnabled ?? true;
+
+  // Profile completeness check
+  const profileIncomplete = !caregiverName || !caregiverPhone || !assignedDoctor;
 
   // Active check-in states
   const [mood, setMood] = useState(6); // 1 to 10
@@ -266,18 +270,17 @@ export default function UserDashboard() {
         };
 
         rec.onerror = () => {
-          setTranscript("Speech captured. System analyzing stress triggers...");
-          setVoiceStressScore(0.68);
+          setTranscript("Speech recognition error. Please check microphone permissions and try again.");
+          setVoiceStressScore(0);
         };
 
         rec.start();
         recognitionRef.current = rec;
       } else {
-        // Fallback for unsupported browsers
-        setTimeout(() => {
-          setTranscript("I am feeling very anxious and struggling to remain calm under this pressure.");
-          setVoiceStressScore(0.82);
-        }, 3000);
+        // Browser does not support Speech Recognition API
+        setTranscript("");
+        setAnalyzingVoice(false);
+        alert("Your browser does not support real-time speech recognition. Please use Chrome or Edge.");
       }
     } catch (err) {
       setAnalyzingVoice(false);
@@ -408,7 +411,10 @@ export default function UserDashboard() {
             <span className="text-4xl block">🚨</span>
             <h3 className="font-heading font-bold text-red-700 text-lg">Confirm Manual SOS Trigger?</h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              This will instantly alert your assigned clinician (Dr. Sen), operational supervisor, and send emergency guides to your caregiver ({caregiverName}).
+              This will immediately alert your assigned clinician
+              {assignedDoctor ? <> (<strong>{assignedDoctor}</strong>)</> : " (none assigned — please configure in Settings)"},{" "}
+              your operational coordinator, and{" "}
+              {caregiverName ? <>send emergency guides to <strong>{caregiverName}</strong></> : "your caregiver (not yet configured)"}.
             </p>
             <div className="flex gap-3">
               <button type="button" className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs" onClick={triggerSOS}>
@@ -430,7 +436,10 @@ export default function UserDashboard() {
           <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-blue-50/50 to-transparent pointer-events-none"></div>
           <h2 className="font-heading font-bold text-lg text-slate-950">Welcome Back, {displayName}</h2>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            Hearthline Sentinel is active. Your assigned doctor is <strong>Dr. Sen</strong>. You have configured consent-first security controls.
+            {assignedDoctor
+              ? <>Hearthline Sentinel is active. Assigned clinician: <strong>{assignedDoctor}</strong>.</>
+              : <span className="text-amber-600 font-medium">No clinician assigned yet — complete your profile in Settings.</span>
+            }
           </p>
         </div>
 
@@ -672,15 +681,22 @@ export default function UserDashboard() {
         <section className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col gap-4 text-xs">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Direct Support Network</h3>
           <div className="flex flex-col gap-2.5">
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-              <div>
-                <span className="font-semibold text-slate-800 block">{caregiverName}</span>
-                <span className="text-[10px] text-slate-400 mt-0.5">{caregiverPhone} • Caregiver</span>
+            {caregiverName && caregiverPhone ? (
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                <div>
+                  <span className="font-semibold text-slate-800 block">{caregiverName}</span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">{caregiverPhone} • Caregiver</span>
+                </div>
+                <a href={`tel:${caregiverPhone}`} className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[10px] text-center hover:no-underline">
+                  📞 Call
+                </a>
               </div>
-              <a href={`tel:${caregiverPhone}`} className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[10px] text-center hover:no-underline">
-                📞 Call
-              </a>
-            </div>
+            ) : (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                ⚠️ No caregiver contact configured.{" "}
+                <Link href="/settings" className="font-bold underline">Add one in Settings</Link> so SOS alerts can reach your support network.
+              </div>
+            )}
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
               <div>
                 <span className="font-semibold text-slate-800 block">Tele-MANAS Helpline</span>

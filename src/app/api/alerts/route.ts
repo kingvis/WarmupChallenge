@@ -1,28 +1,7 @@
 import { NextResponse } from "next/server";
 
-// Static global array in Node process to simulate a real-time database table
-let alerts: any[] = [
-  {
-    id: "alert_1",
-    userId: "user_3Gz5rbgru2ATqR9jp1owVFtAcny",
-    userName: "Nikhil Sharma",
-    severity: "high",
-    triggers: ["Repeated negative mood check-in", "Speech distress phrase match"],
-    status: "active",
-    clinicianNotes: "",
-    timestamp: new Date(Date.now() - 30 * 60000).toISOString() // 30 mins ago
-  },
-  {
-    id: "alert_2",
-    userId: "user_3Gz6Oercpa4YHoMoWB1YO7fmZTl",
-    userName: "Aditya Roy",
-    severity: "critical",
-    triggers: ["Manual SOS Trigger"],
-    status: "escalated",
-    clinicianNotes: "Assigned doctor notified. Operations backup SLA timer started.",
-    timestamp: new Date(Date.now() - 5 * 60000).toISOString() // 5 mins ago
-  }
-];
+// Static global array in Node process. Starts empty. No assumed alerts are pre-loaded.
+let alerts: any[] = [];
 
 export async function GET() {
   return NextResponse.json({ alerts });
@@ -43,7 +22,7 @@ export async function POST(req: Request) {
       timestamp: new Date().toISOString()
     };
 
-    alerts.unshift(newAlert); // add to top of lists
+    alerts.unshift(newAlert);
     return NextResponse.json({ success: true, alert: newAlert });
   } catch (err) {
     return NextResponse.json({ error: "Failed to create alert" }, { status: 500 });

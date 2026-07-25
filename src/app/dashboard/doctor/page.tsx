@@ -22,16 +22,12 @@ export default function DoctorDashboard() {
     }
   }, [isLoaded, user, router]);
 
-  // Data states
-  const [patients, setPatients] = useState<any[]>([
-    { id: "user_3Gz5rbgru2ATqR9jp1owVFtAcny", name: "Nikhil Sharma", age: "28", lastActive: "30 mins ago", status: "High Risk" },
-    { id: "user_3Gz6Oercpa4YHoMoWB1YO7fmZTl", name: "Aditya Roy", age: "31", lastActive: "5 mins ago", status: "Critical" },
-    { id: "pat_3", name: "Rohan Varma", age: "24", lastActive: "2 hours ago", status: "Low Risk" }
-  ]);
+  // Patient list is derived purely from sessions received via API — no hardcoded entries.
+  const [patients, setPatients] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
 
-  const [selectedPatientId, setSelectedPatientId] = useState("user_3Gz5rbgru2ATqR9jp1owVFtAcny");
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   
   // Note-taking and AI states
   const [noteText, setNoteText] = useState("");
@@ -53,17 +49,39 @@ export default function DoctorDashboard() {
 
       const sessionsRes = await fetch("/api/sessions");
       const sessionsData = await sessionsRes.json();
-      setSessions(sessionsData.sessions || []);
+      const liveSessions: any[] = sessionsData.sessions || [];
+      setSessions(liveSessions);
+
+      // Build patient list from unique users who have submitted real sessions
+      const seen = new Set<string>();
+      const derived = liveSessions
+        .filter((s) => { if (seen.has(s.userId)) return false; seen.add(s.userId); return true; })
+        .map((s) => ({
+          id: s.userId,
+          name: s.userName,
+          lastActive: new Date(s.timestamp).toLocaleTimeString(),
+          riskScore: s.combinedRiskScore,
+          status:
+            s.combinedRiskScore >= 9 ? "Critical" :
+            s.combinedRiskScore >= 6 ? "High Risk" :
+            s.combinedRiskScore >= 3 ? "Moderate" : "Low Risk"
+        }));
+      setPatients(derived);
+      if (derived.length > 0 && !selectedPatientId) {
+        setSelectedPatientId(derived[0].id);
+      }
     } catch (err) {
       console.error(err);
     }
   };
 
-  const getPatientAlert = (patientId: string) => {
+  const getPatientAlert = (patientId: string | null) => {
+    if (!patientId) return undefined;
     return alerts.find((a) => a.userId === patientId);
   };
 
-  const getPatientSession = (patientId: string) => {
+  const getPatientSession = (patientId: string | null) => {
+    if (!patientId) return undefined;
     return sessions.find((s) => s.userId === patientId);
   };
 
@@ -120,8 +138,8 @@ export default function DoctorDashboard() {
           transcript: activeSession.transcript,
           facialScore: activeSession.facialDistressScore,
           vocalSentimentScore: activeSession.vocalSentimentScore,
-          moodScore: 3,
-          stressLevel: 8,
+          moodScore: activeSession.combinedRiskScore,   // use real session value
+          stressLevel: Math.round(activeSession.vocalSentimentScore * 10), // derive from real signal
           role: "doctor",
           userName: activeSession.userName
         })
@@ -129,13 +147,8 @@ export default function DoctorDashboard() {
       const data = await res.json();
       setAiSummary(data);
     } catch (err) {
-      setAiSummary({
-        observedIndicators: "Speech logs indicate elevated stress levels and verbalized trigger cravings.",
-        confidenceNotes: "Moderate data confidence. Signals match self-reported values.",
-        riskRationale: "Active alert triggered by patient checking under stress threshold.",
-        recommendedFollowUp: ["How are you sleeping?", "Any physical cravings?"],
-        suggestedIntervention: "Engage grounding tools and verify caregiver alert toggles."
-      });
+      console.error("Gemini summary failed:", err);
+      setAiSummary({ _error: "AI summary request failed. Check GEMINI_API_KEY in .env.local and retry." });
     } finally {
       setAiLoading(false);
     }
@@ -179,7 +192,12 @@ export default function DoctorDashboard() {
         <section className="flex flex-col gap-4">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Patient Roster</h3>
           <div className="flex flex-col gap-2">
-            {patients.map((pat) => (
+            {patients.length === 0 ? (
+            <div className="p-6 bg-white border border-slate-200 rounded-xl text-center text-xs text-slate-400">
+              No patient sessions recorded yet. Patients appear here after submitting a real check-in or session from their dashboard.
+            </div>
+          ) : (
+            patients.map((pat) => (
               <button
                 key={pat.id}
                 type="button"
@@ -195,16 +213,18 @@ export default function DoctorDashboard() {
                   <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border 
                     ${pat.status === 'Critical' ? 'bg-red-600 border-red-600 text-white' : ''}
                     ${pat.status === 'High Risk' ? 'bg-red-50 border-red-200 text-red-600' : ''}
+                    ${pat.status === 'Moderate' ? 'bg-amber-50 border-amber-200 text-amber-700' : ''}
                     ${pat.status === 'Low Risk' ? 'bg-green-50 border-green-200 text-green-700' : ''}
                   `}>
                     {pat.status}
                   </span>
                 </div>
                 <div className="text-[10px] text-slate-400 mt-2">
-                  Age: {pat.age} • Active: {pat.lastActive}
+                  Last active: {pat.lastActive}
                 </div>
               </button>
-            ))}
+            ))
+          )}
           </div>
         </section>
 
@@ -305,22 +325,30 @@ export default function DoctorDashboard() {
 
                   {aiSummary && (
                     <div className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl flex flex-col gap-3 text-indigo-950">
-                      <div>
-                        <h4 className="font-bold text-[10px] uppercase text-indigo-700 tracking-wider">🔬 Observed Indicators</h4>
-                        <p className="mt-1 text-slate-700 leading-relaxed">{aiSummary.observedIndicators}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-[10px] uppercase text-indigo-700 tracking-wider">🔒 Risk Rationale</h4>
-                        <p className="mt-1 text-slate-700 leading-relaxed">{aiSummary.riskRationale}</p>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-[10px] uppercase text-indigo-700 tracking-wider">🗣️ Recommended Follow-up Questions</h4>
-                        <ul className="list-disc list-inside mt-1 leading-relaxed text-slate-700 flex flex-col gap-1 pl-2">
-                          {aiSummary.recommendedFollowUp?.map((q: string, idx: number) => (
-                            <li key={idx}>{q}</li>
-                          ))}
-                        </ul>
-                      </div>
+                      {aiSummary._error ? (
+                        <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs">
+                          ⚠️ {aiSummary._error}
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <h4 className="font-bold text-[10px] uppercase text-indigo-700 tracking-wider">🔬 Observed Indicators</h4>
+                            <p className="mt-1 text-slate-700 leading-relaxed">{aiSummary.observedIndicators}</p>
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-[10px] uppercase text-indigo-700 tracking-wider">🔒 Risk Rationale</h4>
+                            <p className="mt-1 text-slate-700 leading-relaxed">{aiSummary.riskRationale}</p>
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-[10px] uppercase text-indigo-700 tracking-wider">🗣️ Recommended Follow-up Questions</h4>
+                            <ul className="list-disc list-inside mt-1 leading-relaxed text-slate-700 flex flex-col gap-1 pl-2">
+                              {aiSummary.recommendedFollowUp?.map((q: string, idx: number) => (
+                                <li key={idx}>{q}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

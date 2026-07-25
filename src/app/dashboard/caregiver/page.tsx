@@ -72,13 +72,9 @@ export default function CaregiverDashboard() {
         })
       });
       const data = await res.json();
-      setGuideData(data);
+      setGuideData(data); // includes _error if GEMINI_API_KEY is missing
     } catch (err) {
-      setGuideData({
-        whatToSay: "I can see you're going through a really hard moment right now. Let's take a slow breath together.",
-        whatToAvoid: "Avoid demanding questions or bringing up past mistakes. Keep it focused on the current moment.",
-        boundaryTip: "Remember that you cannot force their recovery. Step away and focus on keeping yourself calm first."
-      });
+      setGuideData({ _error: "Could not reach the summary service. Check your network and GEMINI_API_KEY configuration." });
     } finally {
       setGuideLoading(false);
     }
@@ -170,20 +166,26 @@ export default function CaregiverDashboard() {
 
           {guideData && (
             <div className="flex flex-col gap-3 mt-2">
-              <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl text-xs">
-                <h4 className="font-bold text-emerald-800 uppercase tracking-wider mb-1">💡 What to Say</h4>
-                <p className="text-slate-700">"{guideData.whatToSay}"</p>
-              </div>
-
-              <div className="p-4 bg-red-50/50 border border-red-200 rounded-xl text-xs">
-                <h4 className="font-bold text-red-800 uppercase tracking-wider mb-1">🚫 What to Avoid</h4>
-                <p className="text-slate-700">{guideData.whatToAvoid}</p>
-              </div>
-
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-                <h4 className="font-bold text-slate-700 uppercase tracking-wider mb-1">🧱 Boundary Setting</h4>
-                <p className="text-slate-600">{guideData.boundaryTip}</p>
-              </div>
+              {guideData._error ? (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                  ⚠️ {guideData._error}
+                </div>
+              ) : (
+                <>
+                  <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl text-xs">
+                    <h4 className="font-bold text-emerald-800 uppercase tracking-wider mb-1">💡 What to Say</h4>
+                    <p className="text-slate-700">"{guideData.whatToSay}"</p>
+                  </div>
+                  <div className="p-4 bg-red-50/50 border border-red-200 rounded-xl text-xs">
+                    <h4 className="font-bold text-red-800 uppercase tracking-wider mb-1">🚫 What to Avoid</h4>
+                    <p className="text-slate-700">{guideData.whatToAvoid}</p>
+                  </div>
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                    <h4 className="font-bold text-slate-700 uppercase tracking-wider mb-1">🧱 Boundary Setting</h4>
+                    <p className="text-slate-600">{guideData.boundaryTip}</p>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </section>

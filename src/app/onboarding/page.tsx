@@ -18,8 +18,8 @@ export default function OnboardingPage() {
   const [emergencyContactName, setEmergencyContactName] = useState("");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
   
-  const [assignedDoctorId, setAssignedDoctorId] = useState("Dr. Sen");
-  const [assignedSupervisorId, setAssignedSupervisorId] = useState("Super Aarav");
+  const [assignedDoctorId, setAssignedDoctorId] = useState("");
+  const [assignedSupervisorId, setAssignedSupervisorId] = useState("");
   
   // Consent Preferences
   const [cameraEnabled, setCameraEnabled] = useState(true);
@@ -50,6 +50,21 @@ export default function OnboardingPage() {
     if (!fullName.trim()) {
       setError("Please enter your display name.");
       return;
+    }
+
+    if (role === "user") {
+      if (!assignedDoctorId) {
+        setError("Please select an assigned clinician.");
+        return;
+      }
+      if (!assignedSupervisorId) {
+        setError("Please select an assigned coordinator.");
+        return;
+      }
+      if (!emergencyContactName.trim() || !emergencyContactPhone.trim()) {
+        setError("Please complete your emergency caregiver details (Name & Phone).");
+        return;
+      }
     }
 
     setSaving(true);
@@ -175,6 +190,7 @@ export default function OnboardingPage() {
                     value={assignedDoctorId}
                     onChange={(e) => setAssignedDoctorId(e.target.value)}
                   >
+                    <option value="">-- Select Clinician --</option>
                     <option value="Dr. Sen">Dr. Rohan Sen (Therapist)</option>
                     <option value="Dr. Patel">Dr. Anjali Patel (Psychiatrist)</option>
                   </select>
@@ -187,6 +203,7 @@ export default function OnboardingPage() {
                     value={assignedSupervisorId}
                     onChange={(e) => setAssignedSupervisorId(e.target.value)}
                   >
+                    <option value="">-- Select Coordinator --</option>
                     <option value="Super Aarav">Aarav Sharma (Supervisor)</option>
                     <option value="Super Priya">Priya Nair (Operations)</option>
                   </select>
